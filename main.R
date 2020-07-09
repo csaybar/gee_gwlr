@@ -17,17 +17,18 @@ target_dataset <- read_sf("data/train_dataset.geojson")
 #   x = target_dataset,
 #   via = "gcs_to_asset",
 #   bucket = "rgee_dev",
-#   assetId = "users/csaybar/forest_risk_points",
+#   assetId = "users/csaybar/forest/forest_risk_points",
 #   overwrite = TRUE,
 #   monitoring = FALSE
 # )
+
 
 # 2. Create Predictors
 x <- create_predictors2()$toBands()
 
 
 # 3. Extract values
-y <- ee$FeatureCollection("users/csaybar/forest_risk_points")
+y <- ee$FeatureCollection("users/csaybar/forest/forest_risk_points")
 dataset <- split_extract(x, y, by = 1000)
 names(dataset) <- c("id", "target", "dem", "slp", "tpi", "cpo",
                     "rio", "anp", "acr", "via", "cag", "cat", "geometry")
@@ -90,12 +91,22 @@ coefficients <- coefficients$select(c(5,8,9,4,7,1,0,10,2,3,6))
 # ee_predictor$bandNames()$getInfo()
 # coefficients$bandNames()$getInfo()
 final_map <- ee_predict(coefficients, ee_predictor)
-ee_task <- ee_image_to_asset(
-  image = final_map,
-  assetId = "users/csaybar/forest/finalmap",
-  overwrite = FALSE,
-  scale = 100
-)
-ee_task$start()
-final_map <- ee$Image("users/csaybar/forest/finalmap")
-Map$addLayer(final_map$multiply(imp))
+# ee_task <- ee_image_to_asset(
+#   image = final_map,
+#   assetId = "users/csaybar/forest/finalmap",
+#   overwrite = FALSE,
+#   scale = 100
+# )
+# ee_task$start()
+
+mask <- ee$ImageCollection("users/csaybar/forest/PeruForest_bnb2018")$mosaic() %>%
+  generate_target() %>%
+  "[["("dataset") %>%
+  ee$Image$multiply(0) %>%
+  ee$Image$add(1) %>%
+  ee$Image$unmask(0) %>%
+  ee$Image$updateMask(.,.)
+
+final_map_raster <- ee_as_raster(final_map2, via = "drive", scale = 1000,dsn = "/home/aybarpc01/Github/gee_gwlr/results/final_map.tif")
+
+Map$addLayer(final_map2,list(min=0, max=1))

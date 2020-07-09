@@ -117,7 +117,14 @@ create_predictors2 <- function() {
     ee$Image$multiply(pi) %>%  # in radians
     ee$Image$tan() %>%  # in percentage <0-1>
     ee$Image$multiply(100) %>%
-    ee$Image$unitScale(0, 40) %>%
+    ee$Image$expression(
+      paste0(
+        "( b('slope') > 45) ? 3",
+        ": (b('slope') > 25) ? 2",
+        ": (b('slope') > 15) ? 1",
+        ": 0"
+      )
+    ) %>%
     ee$Image$rename("slp")
 
   tpi <- ee$Image("CSP/ERGo/1_0/Global/ALOS_mTPI") %>%
@@ -463,6 +470,18 @@ GWR_basic <- function(dataset, grid_data, bw = 15000, balance_ratio = 0.5, npoin
     # )
 
     fdb <- na.omit(fdb)
+    unq_val <- unique(fdb$slp)
+    if (length(unq_val) == 1) {
+      if (unq_val == 0) {
+        fdb$slp[sample(200,1)] <- 1
+      } else if (unq_val == 1) {
+        fdb$slp[sample(200,1)] <- 0
+      } else if (unq_val == 2) {
+        fdb$slp[sample(200,1)] <- 0
+      } else if (unq_val == 3) {
+        fdb$slp[sample(200,1)] <- 0
+      }
+    }
     # Main model
 
     main_model <- suppressWarnings(glm(
