@@ -6,7 +6,6 @@ ee_sigmoid <- function(z) {
 }
 
 #' Logistic Regression Predict
-
 ee_predict <- function(coefficients, ee_predictor) {
   # Name of predictors
   bandnames <- ee_predictor$bandNames()$getInfo()
@@ -55,7 +54,7 @@ generate_target <- function(bnb_2018) {
 }
 
 
-study_area <- function(){
+study_area <- function() {
   area <- c(-79.980469, -15.004206, -68.071289,   0.129071 )
   class(area) <- "bbox"
   roi <- st_as_sfc(area)
@@ -90,16 +89,16 @@ split_extract <- function(x, y, by = 1000) {
     index <- r_index - 1
     print(sprintf("Extracting information [%s/%s] ...",index, y_len))
     ee_potential_points <- ee$FeatureCollection(y) %>%
-      ee$FeatureCollection$toList(1000,index) %>%
+      ee$FeatureCollection$toList(by,index) %>%
       ee$FeatureCollection()
     if (r_index == 1) {
       dataset <- ee_extract(
         x = x,
         y = ee_potential_points,
-        sf = TRUE
+        sf = FALSE
       )
     } else {
-      db_local <- ee_extract(x = x, y = ee_potential_points, sf = TRUE)
+      db_local <- ee_extract(x = x, y = ee_potential_points, sf = FALSE)
       dataset <- rbind(dataset, db_local)
     }
   }
@@ -429,6 +428,7 @@ create_predictors <- function(roi, ic, resolution = 100, monitoring = TRUE) {
     ee_monitoring()
   }
 }
+
 ## gaussian: wgt = exp(-.5*(vdist/bw)^2);
 near_select <- function(distance, n, bw = bw) {
   distance_v <- as.numeric(distance)
@@ -445,15 +445,17 @@ GWR_basic <- function(dataset, grid_data, bw = 15000, balance_ratio = 0.5, npoin
   dataset_one <- filter(dataset, target == 1)
   dataset_zero <- filter(dataset, target == 0)
 
+
   save_results <- list()
+  #save_results <- foreach(nr = 1:100) %dopar%  {
   for (nr in seq_len(nrow(my_grid))) {
-    if (nr%%100 == 0) {
+    if (nr%%10 == 0) {
       print(nr)
     }
 
     # one dataset
     ## gaussian: wgt = exp(-.5*(vdist/bw)^2);
-    one_d <- st_distance(dataset_one, grid_data[nr, ]$geometry)
+    one_d <- sf::st_distance(dataset_one, grid_data[nr, ]$geometry)
     selected_points_one <- near_select(one_d, target_one, bw = bw)
     zero_d <- st_distance(dataset_zero, grid_data[nr, ]$geometry)
     selected_points_zero <- near_select(zero_d, target_zero, bw = bw)

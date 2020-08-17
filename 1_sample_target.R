@@ -12,6 +12,8 @@ point_number <- 12000
 
 # total area
 total_area <- generate_target(bnb_2018$mosaic())$dataset
+#Map$addLayer(total_area, list(min = 0, max = 1, palette=c("blue", "red")))
+
 area_total <- image_area(total_area$multiply(0)$add(1))$getInfo()$b1
 
 

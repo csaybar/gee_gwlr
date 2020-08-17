@@ -1,15 +1,16 @@
+library(foreach)
 library(automap)
 library(mapview)
 library(dplyr)
 library(rgee)
 library(stars)
 library(gstat)
+library(raster)
 library(sf)
+library(doParallel)
 
 source("utils.R")
-
 ee_Initialize("csaybar", gcs = TRUE)
-
 
 # 1. Load target dataset
 target_dataset <- read_sf("data/train_dataset.geojson")
@@ -22,10 +23,9 @@ target_dataset <- read_sf("data/train_dataset.geojson")
 #   monitoring = FALSE
 # )
 
-
 # 2. Create Predictors
 x <- create_predictors2()$toBands()
-
+# Map$addLayer(ee_get(x, 3)$first()$clip(ee_Peru), list(min=0,max=1))
 
 # 3. Extract values
 y <- ee$FeatureCollection("users/csaybar/forest/forest_risk_points")
@@ -33,6 +33,7 @@ dataset <- split_extract(x, y, by = 1000)
 names(dataset) <- c("id", "target", "dem", "slp", "tpi", "cpo",
                     "rio", "anp", "acr", "via", "cag", "cat", "geometry")
 # write_sf(dataset, "data/dataset.geojson", delete_dsn =TRUE)
+# dataset <- read_sf("data/dataset.geojson")
 
 # 3.1 create a grid
 amazon_roi <- read_sf("data/Selva_reg.geojson") %>%
@@ -56,14 +57,17 @@ model_results <- GWR_basic(
 # save(model_results,file = "results/model_results.Rdata")
 
 # 5. save results
-sf_model_results <- sf_results(model_results, my_grid$geometry)
+# load("results/model_results.Rdata")
+# sf_model_results <- sf_results(model_results, my_grid$geometry)
+# write_sf(sf_model_results, "/home/csaybar/Documents/Github/gee_gwlr/results/results.geojson")
 results_raster <- as(sf_model_results,"Spatial")
+
 save_raster <- function(x) {
   r_upload <- results_raster[x]
   r_name <- sprintf("results/%s.tif",names(r_upload))
-  writeRaster(rasterFromXYZ(r_upload), r_name)
+  writeRaster(rasterFromXYZ(r_upload), r_name,overwrite=TRUE)
 }
-lapply(1:13,save_raster)
+lapply(1:23,save_raster)
 
 
 # 6. Upload results (raster)
@@ -107,6 +111,12 @@ mask <- ee$ImageCollection("users/csaybar/forest/PeruForest_bnb2018")$mosaic() %
   ee$Image$unmask(0) %>%
   ee$Image$updateMask(.,.)
 
-final_map_raster <- ee_as_raster(final_map2, via = "drive", scale = 1000,dsn = "/home/aybarpc01/Github/gee_gwlr/results/final_map.tif")
+dasdasdasd <- read_sf("/home/aybarpc01/Github/gee_gwlr/data/results.geojson")
+dasdas <- dasdasdasd$geometry
+final_map_raster <- ee_as_raster(final_map, via = "drive", scale = 1000, dsn = "/home/aybarpc01/Github/gee_gwlr/results/final_map.tif")
 
-Map$addLayer(final_map2,list(min=0, max=1))
+dddddddd <- extract(final_map_raster, as(dasdas,"Spatial"))
+dasdasdasd$probability <- as.numeric(dddddddd)
+write_sf(dasdasdasd,"/home/aybarpc01/Github/gee_gwlr/data/results2.geojson")
+
+
