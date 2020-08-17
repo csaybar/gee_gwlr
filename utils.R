@@ -637,3 +637,27 @@ best_predictor <- function(sf_model_results, output = "results/",res = 0.005) {
 #     bucket = "rgee_dev"
 #   )
 # }
+
+mean_by_grid <- function(dataset, grid) {
+  df_base <- matrix(NA, nrow(grid), ncol(dataset)-1) %>%
+    as.data.frame()
+  colnames(df_base) <- colnames(dataset)[1:(length(colnames(dataset)) - 1)]
+  for (index in seq_len(nrow(grid))) {
+    db <- suppressWarnings(
+      suppressMessages(
+        st_intersection(dataset, st_buffer(grid[index,], 0.075, endCapStyle="SQUARE"))
+      )
+    )
+    st_geometry(db) <- NULL
+    result <-  apply(db[-1],2,mean)
+    if (anyNA(result)) {
+      c(id = index, rep(NA,11))
+    } else {
+      df_base[index,] <- c(id = index, apply(db[-1],2,mean))
+    }
+    if (index %% 100 == 0) {
+      print(sprintf("index:%04d",index))
+    }
+  }
+  st_sf(df_base, geometry = grid$geometry)
+}

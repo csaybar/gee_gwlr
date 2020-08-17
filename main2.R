@@ -1,4 +1,5 @@
 library(GWmodel)
+library(nngeo)
 library(stars)
 library(rgee)
 library(raster)
@@ -32,21 +33,27 @@ bw1 <- bw.gwr(
   formula = target ~ acr + anp + cag + cat + cpo + via + rio + dem + slp + tpi,
   data = as(dataset, "Spatial"),
   kernel = "gaussian",
-  dMat = DM,
+  dMat = DM1,
   adaptive = TRUE,
   longlat = TRUE
 )
 
 
 # 4.2 Calculate collineallity
-coll <- gwr.collin.diagno(
-  formula = target ~ acr + anp + cag + cat + cpo + via + rio + dem + slp + tpi,
-  data = as(dataset, "Spatial"),
-  bw = bw1,
-  kernel = "gaussian",
-  adaptive = TRUE,
-  dMat = DM
-)
+# gridded_dataset <- mean_by_grid(dataset, grid)
+# gridded_dataset2 <- na.omit(gridded_dataset)
+# DM3 <- gw.dist(dp.locat = st_coordinates(gridded_dataset2))
+# coll <- gwr.collin.diagno(
+#   formula = target ~ acr + anp + cag + cat + cpo + via + rio + dem + slp + tpi,
+#   data = as(dataset, "Spatial"),
+#   bw = 1.5,
+#   kernel = "gaussian",
+#   longlat = TRUE,
+#   dMat = DM1
+# )
+# sdf <- coll$SDF
+# save(sdf,file = "results/multicolinealidad.Rdata")
+
 
 # 4.3 Model Selection
 # model.sel<-gwr.model.selection(
@@ -67,7 +74,7 @@ gwr.res1 <- ggwr.basic(
   adaptive = TRUE,
   kernel = "gaussian",
   longlat = TRUE,
-  dMat = DM
+  dMat = DM1
 )
 
 gwr.res2 <- ggwr.basic(
